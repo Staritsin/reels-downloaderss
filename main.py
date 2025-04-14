@@ -27,6 +27,7 @@ def download():
         ydl_opts = {
             'outtmpl': f'{DOWNLOAD_PATH}/output.%(ext)s',
             'format': 'mp4',
+            'cookiefile': 'cookies.txt',
             'quiet': True,
             'noplaylist': True,
             'merge_output_format': 'mp4',
