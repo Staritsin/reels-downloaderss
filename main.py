@@ -6,18 +6,16 @@ import requests
 import openai
 from dotenv import load_dotenv
 
-
-app = Flask(__name__)
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-
+app = Flask(__name__)
 DOWNLOAD_PATH = "downloads"
 os.makedirs(DOWNLOAD_PATH, exist_ok=True)
 
 @app.route("/")
 def home():
-    return "Reels Downloader API is working!"
+    return "✅ ReelsDownloader is live!"
 
 @app.route("/download", methods=["GET"])
 def download():
@@ -31,7 +29,8 @@ def download():
             'format': 'mp4',
             'quiet': True,
             'noplaylist': True,
-            'merge_output_format': 'mp4'
+            'merge_output_format': 'mp4',
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36'
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -42,7 +41,6 @@ def download():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 
 @app.route("/transcribe", methods=["POST"])
