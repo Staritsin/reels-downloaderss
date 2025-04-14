@@ -1,6 +1,11 @@
 from flask import Flask, request, send_file, jsonify
 import yt_dlp
 import os
+import tempfile
+import requests
+import openai
+from dotenv import load_dotenv
+
 
 app = Flask(__name__)
 
