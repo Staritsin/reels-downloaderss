@@ -1,0 +1,4 @@
+.instagram.com	TRUE	/	FALSE	0	sessionid	4160395393%3ArdpgIrpVVFq1qH%3A25%3AAYckb6LMOLkt-2IyaHHsdio1j1oW7FgN1JqABEKMRg
+.instagram.com	TRUE	/	FALSE	0	csrftoken	pq4ID81J9eUXU8gX0e3LRfVkEfBmmLSW
+.instagram.com	TRUE	/	FALSE	0	ds_user_id	4160395393
+.instagram.com	TRUE	/	FALSE	0	ig_did	7F6ED60D-6DE7-4BCF-A8E7-134EA7C88D11
