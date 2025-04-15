@@ -56,23 +56,23 @@ def transcribe():
         return jsonify({"error": "Missing 'url' in request body"}), 400
 
     try:
+        # Скачиваем видеофайл по URL
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp_file:
             r = requests.get(video_url, stream=True)
             for chunk in r.iter_content(chunk_size=8192):
                 tmp_file.write(chunk)
             tmp_path = tmp_file.name
 
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
+        # Передаём этот файл в Whisper
         with open(tmp_path, "rb") as f:
-            transcription = client.audio.transcriptions.create(
+            transcript = client.audio.transcriptions.create(
                 model="whisper-1",
                 file=f,
                 response_format="text"
             )
 
         os.remove(tmp_path)
-        return jsonify({"transcription": transcription})
+        return jsonify({"transcription": transcript})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
