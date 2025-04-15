@@ -1,17 +1,16 @@
-from flask import Flask, request, send_file, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import yt_dlp
 import os
 import tempfile
 import requests
-import openai
+from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
-
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = Flask(__name__)
-DOWNLOAD_PATH = "downloads"
+DOWNLOAD_PATH = "static"
 os.makedirs(DOWNLOAD_PATH, exist_ok=True)
 
 @app.route("/")
@@ -22,7 +21,7 @@ def home():
 def download():
     url = request.args.get("url")
     if not url:
-        return jsonify({"error": "Missing URL parameter"}), 400
+        return jsonify({"error": "Missing URL"}), 400
 
     try:
         ydl_opts = {
@@ -32,38 +31,35 @@ def download():
             'quiet': True,
             'noplaylist': True,
             'merge_output_format': 'mp4',
-            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36'
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info).replace(".webm", ".mp4").replace(".mkv", ".mp4")
+            basename = os.path.basename(filename)
 
-        return send_file(filename, as_attachment=True)
+        # Вернём ссылку на скачанное видео
+        public_url = f"{request.host_url}static/{basename}"
+        return jsonify({"url": public_url})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-from openai import OpenAI
-
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
     data = request.get_json()
     video_url = data.get("url")
-
     if not video_url:
-        return jsonify({"error": "Missing 'url' in request body"}), 400
+        return jsonify({"error": "Missing 'url'"}), 400
 
     try:
-        # Скачиваем видеофайл по URL
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp_file:
             r = requests.get(video_url, stream=True)
             for chunk in r.iter_content(chunk_size=8192):
                 tmp_file.write(chunk)
             tmp_path = tmp_file.name
 
-        # Передаём этот файл в Whisper
         with open(tmp_path, "rb") as f:
             transcript = client.audio.transcriptions.create(
                 model="whisper-1",
@@ -77,6 +73,11 @@ def transcribe():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+# Обработка файлов из /static
+@app.route("/static/<path:filename>")
+def serve_file(filename):
+    return send_from_directory(DOWNLOAD_PATH, filename)
 
 
 if __name__ == "__main__":
