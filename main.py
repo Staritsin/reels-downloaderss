@@ -45,6 +45,8 @@ def download():
         return jsonify({"error": str(e)}), 500
 
 
+from openai import OpenAI
+
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
     data = request.get_json()
@@ -60,23 +62,21 @@ def transcribe():
                 tmp_file.write(chunk)
             tmp_path = tmp_file.name
 
-        # Вот тут используй новый клиент openai > 1.0
-        import openai
-        from openai import OpenAI
-
-        client = OpenAI(api_key=openai.api_key)
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
         with open(tmp_path, "rb") as f:
-            transcript = client.audio.transcriptions.create(
+            transcription = client.audio.transcriptions.create(
                 model="whisper-1",
-                file=f
+                file=f,
+                response_format="text"
             )
 
         os.remove(tmp_path)
-        return jsonify({"transcription": transcript.text})
+        return jsonify({"transcription": transcription})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
 if __name__ == "__main__":
