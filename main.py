@@ -7,7 +7,8 @@ import openai
 from dotenv import load_dotenv
 
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = Flask(__name__)
 DOWNLOAD_PATH = "downloads"
@@ -59,11 +60,14 @@ def transcribe():
                 tmp_file.write(chunk)
             tmp_path = tmp_file.name
 
-        with open(tmp_path, "rb") as f:
-            transcript = openai.Audio.transcribe("whisper-1", f)
+        with open(tmp_path, "rb") as audio_file:
+            transcription = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file
+            )
 
         os.remove(tmp_path)
-        return jsonify({"transcription": transcript["text"]})
+        return jsonify({"transcription": transcription.text})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
