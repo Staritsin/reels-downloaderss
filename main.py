@@ -47,27 +47,26 @@ def download():
 
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
-    data = request.get_json()
-    video_url = data.get("url")
-
-    if not video_url:
-        return jsonify({"error": "Missing 'url' in request body"}), 400
-
     try:
+        # Получаем ссылку на видео
+        data = request.get_json()
+        video_url = data.get("url")
+        if not video_url:
+            return jsonify({"error": "Missing 'url' in request body"}), 400
+
+        # Скачиваем видео во временный файл
         with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp_file:
-            r = requests.get(video_url, stream=True)
-            for chunk in r.iter_content(chunk_size=8192):
+            response = requests.get(video_url, stream=True)
+            for chunk in response.iter_content(chunk_size=8192):
                 tmp_file.write(chunk)
             tmp_path = tmp_file.name
 
-        with open(tmp_path, "rb") as audio_file:
-            transcription = client.audio.transcriptions.create(
-                model="whisper-1",
-                file=audio_file
-            )
+        # Загружаем файл в OpenAI Whisper через multipart/form-data
+        with open(tmp_path, "rb") as f:
+            transcript = openai.Audio.transcribe("whisper-1", f)
 
         os.remove(tmp_path)
-        return jsonify({"transcription": transcription.text})
+        return jsonify({"transcription": transcript["text"]})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
