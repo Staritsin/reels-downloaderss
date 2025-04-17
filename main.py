@@ -31,6 +31,7 @@ def download():
             'quiet': True,
             'noplaylist': True,
             'merge_output_format': 'mp4',
+            'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
