@@ -1,5 +1,5 @@
 # Netscape HTTP Cookie File
-.instagram.com	TRUE	/	FALSE	2147483647	sessionid	4160395393%3ArdpgIrpVVFq1qH%3A25%3AAYckb6LMOLkt-2IyaHHsdio1j1oW7FgN1JqABEKMRg
-.instagram.com	TRUE	/	FALSE	2147483647	csrftoken	pq4ID81J9eUXU8gX0e3LRfVkEfBmmLSW
+.instagram.com	TRUE	/	FALSE	2147483647	sessionid	4160395393%3AEyax9a2nA3TLvS%3A6%3AAYe1rSeTdSTlhoaUyaoHLYwbfH3B1e9Dj3WoPFAy5Q
+.instagram.com	TRUE	/	FALSE	2147483647	csrftoken	AnTFMRSj6LyAGXwuWyZQtcIV8lJpLqsd
 .instagram.com	TRUE	/	FALSE	2147483647	ds_user_id	4160395393
 .instagram.com	TRUE	/	FALSE	2147483647	ig_did	7F6ED60D-6DE7-4BCF-A8E7-134EA7C88D11
