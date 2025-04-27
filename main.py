@@ -4,6 +4,7 @@ import os
 import tempfile
 import requests
 import subprocess
+import time
 from dotenv import load_dotenv
 from openai import OpenAI
 
@@ -13,6 +14,8 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = Flask(__name__)
 DOWNLOAD_PATH = "static"
 os.makedirs(DOWNLOAD_PATH, exist_ok=True)
+
+FILE_LIFETIME_SECONDS = 24 * 60 * 60  # 1 день
 
 def convert_mov_to_mp4(input_path, output_path):
     try:
@@ -26,12 +29,24 @@ def convert_mov_to_mp4(input_path, output_path):
     except Exception as e:
         raise Exception(f"Ошибка при конвертации MOV в MP4: {str(e)}")
 
+def clean_old_files():
+    now = time.time()
+    for filename in os.listdir(DOWNLOAD_PATH):
+        filepath = os.path.join(DOWNLOAD_PATH, filename)
+        if os.path.isfile(filepath):
+            file_age = now - os.path.getmtime(filepath)
+            if file_age > FILE_LIFETIME_SECONDS:
+                os.remove(filepath)
+                print(f"Удалён старый файл: {filename}")
+
 @app.route("/")
 def home():
     return "✅ ReelsDownloader is live!"
 
 @app.route("/download", methods=["GET"])
 def download():
+    clean_old_files()  # <--- ДОБАВИЛ ОЧИСТКУ ПЕРЕД СКАЧИВАНИЕМ
+
     url = request.args.get("url")
     if not url:
         return jsonify({"error": "Missing URL"}), 400
