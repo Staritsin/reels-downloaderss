@@ -3,8 +3,9 @@ import yt_dlp
 import os
 import tempfile
 import requests
-from openai import OpenAI
+import subprocess
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -12,6 +13,18 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = Flask(__name__)
 DOWNLOAD_PATH = "static"
 os.makedirs(DOWNLOAD_PATH, exist_ok=True)
+
+def convert_mov_to_mp4(input_path, output_path):
+    try:
+        subprocess.run([
+            "ffmpeg",
+            "-i", input_path,
+            "-vcodec", "h264",
+            "-acodec", "aac",
+            output_path
+        ], check=True)
+    except Exception as e:
+        raise Exception(f"Ошибка при конвертации MOV в MP4: {str(e)}")
 
 @app.route("/")
 def home():
@@ -25,7 +38,7 @@ def download():
 
     try:
         if "youtube.com" in url or "youtu.be" in url:
-            # Если это YouTube
+            # YouTube
             ydl_opts = {
                 'outtmpl': f'{DOWNLOAD_PATH}/output.%(ext)s',
                 'format': 'bestvideo+bestaudio/best',
@@ -40,14 +53,23 @@ def download():
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
-                filename = ydl.prepare_filename(info).replace(".webm", ".mp4").replace(".mkv", ".mp4")
+                filename = ydl.prepare_filename(info)
                 basename = os.path.basename(filename)
         else:
-            # Все остальные ссылки (Instagram, TikTok)
-            filename = f"{DOWNLOAD_PATH}/output.mp4"
+            # Instagram, TikTok и т.д.
+            original_filename = f"{DOWNLOAD_PATH}/output.mov"
             r = requests.get(url, allow_redirects=True)
-            with open(filename, 'wb') as f:
+            with open(original_filename, 'wb') as f:
                 f.write(r.content)
+
+            # Конвертируем в MP4
+            converted_filename = f"{DOWNLOAD_PATH}/output.mp4"
+            convert_mov_to_mp4(original_filename, converted_filename)
+
+            # Удаляем оригинальный MOV
+            if os.path.exists(original_filename):
+                os.remove(original_filename)
+
             basename = "output.mp4"
 
         public_url = f"{request.host_url}static/{basename}"
@@ -55,8 +77,6 @@ def download():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
 
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
@@ -85,12 +105,9 @@ def transcribe():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-# Обработка файлов из /static
 @app.route("/static/<path:filename>")
 def serve_file(filename):
     return send_from_directory(DOWNLOAD_PATH, filename)
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
