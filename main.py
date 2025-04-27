@@ -24,38 +24,38 @@ def download():
         return jsonify({"error": "Missing URL"}), 400
 
     try:
-        # Удаляем старый файл перед скачиванием
-        old_file_path = os.path.join(DOWNLOAD_PATH, "output.mp4")
-        if os.path.exists(old_file_path):
-            os.remove(old_file_path)
+        if "youtube.com" in url or "youtu.be" in url:
+            # Если это YouTube
+            ydl_opts = {
+                'outtmpl': f'{DOWNLOAD_PATH}/output.%(ext)s',
+                'format': 'bestvideo+bestaudio/best',
+                'merge_output_format': 'mp4',
+                'quiet': True,
+                'noplaylist': True,
+                'geo_bypass': True,
+                'nocheckcertificate': True,
+                'source_address': '0.0.0.0',
+                'cookiefile': 'cookies.txt',
+                'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=True)
+                filename = ydl.prepare_filename(info).replace(".webm", ".mp4").replace(".mkv", ".mp4")
+                basename = os.path.basename(filename)
+        else:
+            # Все остальные ссылки (Instagram, TikTok)
+            filename = f"{DOWNLOAD_PATH}/output.mp4"
+            r = requests.get(url, allow_redirects=True)
+            with open(filename, 'wb') as f:
+                f.write(r.content)
+            basename = "output.mp4"
 
-
-        ydl_opts = {
-            'outtmpl': f'{DOWNLOAD_PATH}/output.%(ext)s',
-            'format': 'bestvideo+bestaudio/best',
-            'merge_output_format': 'mp4',
-            'geo_bypass': True,
-            'nocheckcertificate': True,
-            'source_address': '0.0.0.0',
-            'quiet': True,
-            'noplaylist': True,
-            'cookiefile': 'cookies.txt',
-            'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
-        }
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=True)
-
-        output_path = os.path.join(DOWNLOAD_PATH, "output.mp4")
-        if not os.path.exists(output_path):
-            return jsonify({"error": "Download failed, output file not found"}), 500
-
-        # Вернём публичную ссылку на новый файл
-        public_url = f"{request.host_url}static/output.mp4"
+        public_url = f"{request.host_url}static/{basename}"
         return jsonify({"url": public_url})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
 @app.route("/transcribe", methods=["POST"])
