@@ -32,14 +32,14 @@ def download():
 
         ydl_opts = {
             'outtmpl': f'{DOWNLOAD_PATH}/output.%(ext)s',
-            'format': 'mp4',
-            'cookiefile': 'cookies.txt',
-            'quiet': True,
-            'noplaylist': True,
+            'format': 'bestvideo+bestaudio/best',
             'merge_output_format': 'mp4',
             'geo_bypass': True,
             'nocheckcertificate': True,
             'source_address': '0.0.0.0',
+            'quiet': True,
+            'noplaylist': True,
+            'cookiefile': 'cookies.txt',
             'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
         }
 
