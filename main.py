@@ -24,42 +24,28 @@ def download():
         return jsonify({"error": "Missing URL"}), 400
 
     try:
-        # Определяем источник
-        is_instagram = "instagram.com" in url
-        is_tiktok = "tiktok.com" in url
-        is_youtube = "youtube.com" in url or "youtu.be" in url
+        ydl_opts = {
+            'outtmpl': f'{DOWNLOAD_PATH}/output.%(ext)s',
+            'format': 'mp4',
+            'cookiefile': 'cookies.txt',
+            'quiet': True,
+            'noplaylist': True,
+            'merge_output_format': 'mp4',
+            'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
+        }
 
-        if is_instagram or is_tiktok:
-            # Для Instagram и TikTok скачиваем напрямую как файл
-            filename = f"{DOWNLOAD_PATH}/output.mp4"
-            r = requests.get(url, allow_redirects=True)
-            with open(filename, 'wb') as f:
-                f.write(r.content)
-            basename = "output.mp4"
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            filename = ydl.prepare_filename(info).replace(".webm", ".mp4").replace(".mkv", ".mp4")
+            basename = os.path.basename(filename)
 
-        elif is_youtube:
-            # Для YouTube через yt-dlp
-            ydl_opts = {
-                'outtmpl': f'{DOWNLOAD_PATH}/output.%(ext)s',
-                'format': 'bestvideo+bestaudio/best',
-                'merge_output_format': 'mp4',
-                'quiet': True,
-                'noplaylist': True,
-                'cookiefile': 'cookies.txt',
-                'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
-            }
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(url, download=True)
-                filename = ydl.prepare_filename(info).replace(".webm", ".mp4").replace(".mkv", ".mp4")
-                basename = os.path.basename(filename)
-        else:
-            return jsonify({"error": "Unsupported URL source"}), 400
-
+        # Вернём ссылку на скачанное видео
         public_url = f"{request.host_url}static/{basename}"
         return jsonify({"url": public_url})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/transcribe", methods=["POST"])
 def transcribe():
@@ -88,9 +74,12 @@ def transcribe():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+# Обработка файлов из /static
 @app.route("/static/<path:filename>")
 def serve_file(filename):
     return send_from_directory(DOWNLOAD_PATH, filename)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
