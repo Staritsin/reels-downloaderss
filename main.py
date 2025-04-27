@@ -24,23 +24,30 @@ def download():
         return jsonify({"error": "Missing URL"}), 400
 
     try:
+        # Удаляем старый файл перед скачиванием
+        old_file_path = os.path.join(DOWNLOAD_PATH, "output.mp4")
+        if os.path.exists(old_file_path):
+            os.remove(old_file_path)
+
         ydl_opts = {
-            'outtmpl': f'{DOWNLOAD_PATH}/output.%(ext)s',
+            'outtmpl': f'{DOWNLOAD_PATH}/output.%(ext)s',  # сохраняем как output.mp4
             'format': 'mp4',
-            'cookiefile': 'cookies.txt',
             'quiet': True,
             'noplaylist': True,
             'merge_output_format': 'mp4',
-            'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
+            'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36',
+            'cookiefile': 'cookies.txt'  # для Instagram/TikTok обязательно
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
-            filename = ydl.prepare_filename(info).replace(".webm", ".mp4").replace(".mkv", ".mp4")
-            basename = os.path.basename(filename)
 
-        # Вернём ссылку на скачанное видео
-        public_url = f"{request.host_url}static/{basename}"
+        output_path = os.path.join(DOWNLOAD_PATH, "output.mp4")
+        if not os.path.exists(output_path):
+            return jsonify({"error": "Download failed, output file not found"}), 500
+
+        # Вернём публичную ссылку на новый файл
+        public_url = f"{request.host_url}static/output.mp4"
         return jsonify({"url": public_url})
 
     except Exception as e:
