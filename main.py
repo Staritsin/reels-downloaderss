@@ -3,10 +3,8 @@ import yt_dlp
 import os
 import tempfile
 import requests
-import subprocess
-import time
-from dotenv import load_dotenv
 from openai import OpenAI
+from dotenv import load_dotenv
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -15,77 +13,47 @@ app = Flask(__name__)
 DOWNLOAD_PATH = "static"
 os.makedirs(DOWNLOAD_PATH, exist_ok=True)
 
-FILE_LIFETIME_SECONDS = 24 * 60 * 60  # 1 день
-
-def convert_mov_to_mp4(input_path, output_path):
-    try:
-        subprocess.run([
-            "ffmpeg",
-            "-i", input_path,
-            "-vcodec", "h264",
-            "-acodec", "aac",
-            output_path
-        ], check=True)
-    except Exception as e:
-        raise Exception(f"Ошибка при конвертации MOV в MP4: {str(e)}")
-
-def clean_old_files():
-    now = time.time()
-    for filename in os.listdir(DOWNLOAD_PATH):
-        filepath = os.path.join(DOWNLOAD_PATH, filename)
-        if os.path.isfile(filepath):
-            file_age = now - os.path.getmtime(filepath)
-            if file_age > FILE_LIFETIME_SECONDS:
-                os.remove(filepath)
-                print(f"Удалён старый файл: {filename}")
-
 @app.route("/")
 def home():
     return "✅ ReelsDownloader is live!"
 
 @app.route("/download", methods=["GET"])
 def download():
-    clean_old_files()  # <--- ДОБАВИЛ ОЧИСТКУ ПЕРЕД СКАЧИВАНИЕМ
-
     url = request.args.get("url")
     if not url:
         return jsonify({"error": "Missing URL"}), 400
 
     try:
-        if "youtube.com" in url or "youtu.be" in url:
-            # YouTube
+        # Определяем источник
+        is_instagram = "instagram.com" in url
+        is_tiktok = "tiktok.com" in url
+        is_youtube = "youtube.com" in url or "youtu.be" in url
+
+        if is_instagram or is_tiktok:
+            # Для Instagram и TikTok скачиваем напрямую как файл
+            filename = f"{DOWNLOAD_PATH}/output.mp4"
+            r = requests.get(url, allow_redirects=True)
+            with open(filename, 'wb') as f:
+                f.write(r.content)
+            basename = "output.mp4"
+
+        elif is_youtube:
+            # Для YouTube через yt-dlp
             ydl_opts = {
                 'outtmpl': f'{DOWNLOAD_PATH}/output.%(ext)s',
                 'format': 'bestvideo+bestaudio/best',
                 'merge_output_format': 'mp4',
                 'quiet': True,
                 'noplaylist': True,
-                'geo_bypass': True,
-                'nocheckcertificate': True,
-                'source_address': '0.0.0.0',
                 'cookiefile': 'cookies.txt',
                 'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
             }
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=True)
-                filename = ydl.prepare_filename(info)
+                filename = ydl.prepare_filename(info).replace(".webm", ".mp4").replace(".mkv", ".mp4")
                 basename = os.path.basename(filename)
         else:
-            # Instagram, TikTok и т.д.
-            original_filename = f"{DOWNLOAD_PATH}/output.mov"
-            r = requests.get(url, allow_redirects=True)
-            with open(original_filename, 'wb') as f:
-                f.write(r.content)
-
-            # Конвертируем в MP4
-            converted_filename = f"{DOWNLOAD_PATH}/output.mp4"
-            convert_mov_to_mp4(original_filename, converted_filename)
-
-            # Удаляем оригинальный MOV
-            if os.path.exists(original_filename):
-                os.remove(original_filename)
-
-            basename = "output.mp4"
+            return jsonify({"error": "Unsupported URL source"}), 400
 
         public_url = f"{request.host_url}static/{basename}"
         return jsonify({"url": public_url})
