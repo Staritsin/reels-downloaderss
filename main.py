@@ -29,14 +29,18 @@ def download():
         if os.path.exists(old_file_path):
             os.remove(old_file_path)
 
+
         ydl_opts = {
-            'outtmpl': f'{DOWNLOAD_PATH}/output.%(ext)s',  # сохраняем как output.mp4
+            'outtmpl': f'{DOWNLOAD_PATH}/output.%(ext)s',
             'format': 'mp4',
+            'cookiefile': 'cookies.txt',
             'quiet': True,
             'noplaylist': True,
             'merge_output_format': 'mp4',
-            'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36',
-            'cookiefile': 'cookies.txt'  # для Instagram/TikTok обязательно
+            'geo_bypass': True,
+            'nocheckcertificate': True,
+            'source_address': '0.0.0.0',
+            'user_agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36'
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
