@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, send_file
 import yt_dlp
 import os
 import tempfile
@@ -12,6 +12,20 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = Flask(__name__)
 DOWNLOAD_PATH = "static"
 os.makedirs(DOWNLOAD_PATH, exist_ok=True)
+
+@app.route('/download', methods=['POST'])
+def download_video():
+    url = request.json.get('url')
+    filename = "video.mp4"
+
+    # Скачиваем файл по ссылке
+    r = requests.get(url, allow_redirects=True)
+    open(filename, 'wb').write(r.content)
+
+    # Отправляем файл обратно
+    return send_file(filename, mimetype='video/mp4')
+
+
 
 @app.route("/")
 def home():
